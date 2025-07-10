@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>개인 네트워크 진단 (Ego Network Assessment)</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Apple SD Gothic Neo', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .description {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+        .description h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        .description p {
+            color: #34495e;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+        .description ul {
+            padding-left: 20px;
+            margin-bottom: 0;
+        }
+        .description li {
+            margin-bottom: 10px;
+            color: #34495e;
+        }
+        .input-section {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            max-width: 700px;
+            margin-left: 0;
+            margin-right: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 18px;
+            width: 100%;
+            justify-content: center;
+        }
+        .name-input {
+            flex: 0 0 360px;
+            width: 100%;
+            max-width: 360px;
+        }
+        .name-input input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        .add-button {
+            padding: 10px 25px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 0 auto;
+            display: block;
+            margin-top: 18px;
+        }
+        .add-button:hover {
+            background-color: #0056b3;
+        }
+        .characteristics {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 0;
+        }
+        .characteristic-group {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 0;
+            min-width: 90px;
+            max-width: 120px;
+            width: 100%;
+        }
+        .characteristic-group h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-option input[type="checkbox"] {
+            margin: 0;
+            width: 16px;
+            height: 16px;
+        }
+        .people-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 30px 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .person-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .person-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .person-name-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .person-name {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .person-characteristics {
+            color: #666;
+            font-size: 0.95em;
+        }
+        .delete-btn {
+            padding: 4px 8px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .delete-btn:hover {
+            opacity: 1;
+        }
+        .matrix-section {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+        .matrix-section h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        .matrix-container {
+            overflow-x: auto;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .matrix {
+            border-collapse: collapse;
+            margin-left: 0;  /* 왼쪽 정렬 */
+            background: white;
+        }
+        
+        .matrix th:not(:first-child) {
+            padding: 6px 4px;
+            min-width: 50px;
+            max-width: 70px; /* 세 글자 기준 */
+            font-size: 13px;
+            text-align: center;
+            vertical-align: bottom;
+        }
+        
+        .matrix th:not(:first-child) span {
+            display: inline-block;
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.2;
+            width: 100%;
+            max-width: 3em;  /* 한글 3글자 기준 너비 제한 */
+            text-align: center;
+        }
+        .matrix th:first-child {
+            white-space: nowrap;
+            padding-right: 15px;
+            text-align: left;
+            vertical-align: bottom;
+            padding-bottom: 8px;
+            font-size: 13px;
+        }
+        .matrix th {
+            text-align: center;
+            background-color: #e9ecef;
+            font-weight: normal;
+            border: 1px solid #dee2e6;
+        }
+        .matrix td:first-child {
+            white-space: nowrap;
+            padding: 6px 15px 6px 8px;
+            text-align: left;
+            font-size: 13px;
+        }
+        .matrix td {
+            padding: 0;
+            min-width: 30px;
+            height: 30px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+            vertical-align: middle;
+        }
+        .matrix td.relationship-cell {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .matrix td.relationship-cell:hover {
+            background-color: #e9ecef;
+        }
+        .matrix td.selected {
+            background-color: #666;
+        }
+        .matrix td.disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        .matrix td.checkbox-cell {
+            cursor: pointer;
+            background-color: white;
+            padding: 0;
+            vertical-align: middle;
+        }
+        .matrix td.checkbox-cell input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+        .network-controls-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+        .network-container {
+            width: 100%;
+            max-width: 1400px;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto 40px auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: visible;
+            display: block;
+            position: relative;
+        }
+        #network {
+            width: 100%;
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            background: white;
+        }
+        .network-empty-message {
+            text-align: center;
+            color: #666;
+            font-size: 1.1em;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+        }
+        .network-controls h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .network-controls p {
+            margin: 0 0 15px 0;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+        .network-tabs {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        
+        .network-tab {
+            padding: 6px 12px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            flex: 1;
+            min-width: 50px;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        
+        .network-tab:hover {
+            background: #e0e0e0;
+        }
+        
+        .network-tab.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .legend {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 11px;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            margin: 8px 0 4px 0;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            margin-right: 6px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .stats {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        .stats-group {
+            display: flex;
+            flex-direction: row;
+            gap: 40px;
+            justify-content: flex-start;
+            align-items: flex-start;
+        }
+        .explain-panel {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            min-width: 340px;
+        }
+        .explain-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 0;
+            min-width: 120px;
+        }
+        .explain-tab {
+            padding: 10px 18px;
+            border: none;
+            background: #e9ecef;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            color: #333;
+            font-weight: 500;
+            text-align: left;
+            transition: background 0.2s, color 0.2s;
+        }
+        .explain-tab.active {
+            background: #007bff;
+            color: white;
+        }
+        .explain-content {
+            background: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            padding: 24px 18px;
+            margin-left: 18px;
+            font-size: 1.08em;
+            color: #333;
+            min-width: 220px;
+            min-height: 80px;
+            max-width: 400px;
+            flex: 1;
+        }
+        .blau-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+        .blau-section h4 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        .page-header-text {
+            text-align: left;
+            font-size: 1.05em;
+            color: #222;
+            margin: 18px 0 18px 0;
+            font-weight: normal;
+            letter-spacing: 0.5px;
+        }
+        .stats-flex-row {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 0;
+        }
+        .stats-label-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: flex-start;
+            min-width: 120px;
+            margin-right: 32px;
+            font-size: 1.15em;
+            font-weight: bold;
+            color: #222;
+            gap: 16px;
+        }
+        .stats-tab {
+            background: none;
+            border: none;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #222;
+            padding: 8px 0;
+            cursor: pointer;
+            text-align: right;
+            outline: none;
+        }
+        .stats-tab.active {
+            color: #007bff;
+            text-decoration: underline;
+        }
+        .stats-value-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            min-width: 220px;
+        }
+        .stats-item {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+            cursor: pointer;
+        }
+        .stats-item:last-child {
+            border-bottom: none;
+        }
+        .stats-item-label {
+            flex: 1 1 70%;
+            font-size: 1em;
+            color: #333;
+        }
+        .stats-item-value {
+            flex: 0 0 160px;
+            min-width: 140px;
+            text-align: right;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stats-section {
+            margin-bottom: 28px;
+            padding-bottom: 18px;
+            border-bottom: 2px solid #e0e0e0;
+            max-width: 520px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .stats-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .stats-section-title {
+            font-size: 1.25em;
+            font-weight: bold;
+            color: #222;
+            margin-bottom: 12px;
+            margin-top: 0;
+        }
+        .stats-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            padding: 0 12px;
+        }
+        .stats-item {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+        .stats-item:last-child {
+            border-bottom: none;
+        }
+        .stats-item-label {
+            flex: 1 1 70%;
+            font-size: 1em;
+            color: #333;
+        }
+        .stats-item-value {
+            flex: 0 0 120px;
+            min-width: 100px;
+            text-align: right;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>개인 네트워크 진단 (Ego Network Assessment)</h1>
+        <div class="page-header-text">건국대학교 조직행동론 홍운기 교수</div>
+        
+        <div class="description">
+            <h2>당신의 직장 내 네트워크를 생각해보세요</h2>
+            <p>아래와 같은 관계에 있는 사람들을 떠올려보시기 바랍니다:</p>
+            <ul>
+                <li><strong>진로 및 전문성 관련 조언자</strong><br>
+                    내 경력, 학업 또는 자기개발 방향에 대해 고민을 나눈 적 있는 사람
+                    (예: 학위나 자격증 고민, 직무 전환, 경력 방향, 조직 내 입지 등)</li>
+                <li><strong>일과 커리어에 도움을 준 사람들</strong><br>
+                    업무상 조언을 해주거나, 유용한 정보나 기회를 알려준 사람
+                    (예: 프로젝트 팁, 이직 기회, 업계 정보, 중요한 연결고리 등)</li>
+                <li><strong>정서적 지지자 또는 친구</strong><br>
+                    함께 밥을 먹거나 커피를 마시며, 고민을 편하게 털어놨던 사람
+                    (예: 일 얘기, 가족 문제, 삶의 방향 등 사적이고 인간적인 이야기 나눔)</li>
+            </ul>
+        </div>
+
+        <div class="input-section">
+            <div class="input-row">
+                <div class="name-input">
+                    <input type="text" id="name-input" placeholder="이름을 입력하세요">
+                </div>
+            </div>
+            <div class="characteristics">
+                <div class="characteristic-group">
+                    <h4>친밀도</h4>
+                    <div class="checkbox-group">
+                        <label class="checkbox-option" for="closeness-very">
+                            <input type="checkbox" id="closeness-very" name="closeness" value="매우 가깝다" onchange="setTimeout(() => handleCheckboxChange(this), 0)">
+                            매우 가깝다
+                        </label>
+                        <label class="checkbox-option" for="closeness-close">
+                            <input type="checkbox" id="closeness-close" name="closeness" value="가깝다" onchange="setTimeout(() => handleCheckboxChange(this), 0)">
+                            가깝다
+                        </label>
+                        <label class="checkbox-option" for="closeness-normal">
+                            <input type="checkbox" id="closeness-normal" name="closeness" value="보통이다" onchange="setTimeout(() => handleCheckboxChange(this), 0)">
+                            보통이다
+                        </label>
+                    </div>
+                </div>
+                <div class="characteristic-group">
+                    <h4>부서</h4>
+                    <div class="checkbox-group">
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="department" value="same" onchange="setTimeout(() => handleCheckboxChange(this), 0)">
+                            같은 부서
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="department" value="different" onchange="setTimeout(() => handleCheckboxChange(this), 0)">
+                            다른 부서
+                        </label>
+                    </div>
+                </div>
+                <div class="characteristic-group">
+                    <h4>직급</h4>
+                    <div class="checkbox-group">
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="position" value="higher" onchange="setTimeout(() => handleCheckboxChange(this), 0)">
+                            더 높은 직급
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="position" value="same" onchange="setTimeout(() => handleCheckboxChange(this), 0)">
+                            같은 직급
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="position" value="lower" onchange="setTimeout(() => handleCheckboxChange(this), 0)">
+                            더 낮은 직급
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <button class="add-button" onclick="addPerson()">추가</button>
+        </div>
+
+        <ul class="people-list" id="people-list"></ul>
+
+        <div class="matrix-section">
+            <h3>관계 매트릭스</h3>
+            <p>서로 알고 있는 사람들을 선택해주세요.</p>
+            <div id="matrix"></div>
+        </div>
+
+        <div id="network-empty-message" class="network-empty-message" style="display:none;">네트워크를 시각화하려면 2명 이상의 인원을 추가하세요.</div>
+        <div class="network-container" id="network-container">
+            <div class="network-controls-overlay">
+                <div class="network-tabs">
+                    <button class="network-tab active" data-view="all">전체</button>
+                    <button class="network-tab" data-view="position">직급</button>
+                    <button class="network-tab" data-view="department">부서</button>
+                    <button class="network-tab" data-view="closeness">친밀도</button>
+                </div>
+                <div id="legend" class="legend"></div>
+            </div>
+            <svg id="network"></svg>
+        </div>
+
+        <div class="stats">
+            <div class="stats-group">
+                <div>
+                    <div class="stats-section">
+                        <div class="stats-section-title">네트워크 통계</div>
+                        <div class="stats-row">
+                            <div class="stats-item">
+                                <div class="stats-item-label">네트워크 크기</div>
+                                <div class="stats-item-value" id="total-count">0</div>
+                            </div>
+                            <div class="stats-item">
+                                <div class="stats-item-label">친밀한 관계 수</div>
+                                <div class="stats-item-value" id="very-close-count">0</div>
+                            </div>
+                            <div class="stats-item">
+                                <div class="stats-item-label">다른 부서 사람 수</div>
+                                <div class="stats-item-value" id="different-dept-count">0</div>
+                            </div>
+                            <div class="stats-item">
+                                <div class="stats-item-label">더 높은 직급의 사람 수</div>
+                                <div class="stats-item-value" id="higher-position-count">0</div>
+                            </div>
+                            <div class="stats-item">
+                                <div class="stats-item-label" title="전체 가능한 관계 수 대비 실제 연결된 관계의 비율">네트워크 밀집도</div>
+                                <div class="stats-item-value"><span id="network-density" title="총 가능한 관계 수 대비 실제 연결 비율">0</span>%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stats-section">
+                        <div class="stats-section-title">다양성 지수</div>
+                        <div class="stats-row">
+                            <div class="stats-item">
+                                <div class="stats-item-label">친밀도 다양성</div>
+                                <div class="stats-item-value" id="closeness-blau">0</div>
+                            </div>
+                            <div class="stats-item">
+                                <div class="stats-item-label">부서 다양성</div>
+                                <div class="stats-item-value" id="department-blau">0</div>
+                            </div>
+                            <div class="stats-item">
+                                <div class="stats-item-label">직급 다양성</div>
+                                <div class="stats-item-value" id="position-blau">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="explain-panel">
+                    <div class="explain-tabs" id="explain-tabs"></div>
+                    <div class="explain-content" id="explain-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 상태 관리 객체 ---
+        const appState = {
+            people: [
+                { name: '나', closeness: '', department: '', position: '', isMe: true }
+            ],
+            view: 'all',
+            matrix: {}, // 관계 체크박스 상태
+        };
+
+        // --- 유틸 함수 ---
+        function resetInputs() {
+            document.getElementById('name-input').value = '';
+            document.querySelectorAll('input[name="closeness"]').forEach(c => c.checked = false);
+            document.querySelectorAll('input[name="department"]').forEach(c => c.checked = false);
+            document.querySelectorAll('input[name="position"]').forEach(c => c.checked = false);
+        }
+
+        // --- 체크박스 하나만 선택되도록 하는 함수 ---
+        function handleCheckboxChange(changedCheckbox) {
+            const name = changedCheckbox.name;
+            const checkboxes = document.querySelectorAll(`input[name="${name}"]`);
+            
+            // 다른 체크박스들 해제
+            checkboxes.forEach(checkbox => {
+                if (checkbox !== changedCheckbox) {
+                    checkbox.checked = false;
+                }
+            });
+        }
+        
+        // --- 인물 추가 ---
+        function addPerson() {
+            const name = document.getElementById('name-input').value.trim();
+            
+            // 모든 항목이 체크되었는지 확인
+            const checkedCloseness = document.querySelectorAll('input[name="closeness"]:checked');
+            const checkedDepartment = document.querySelectorAll('input[name="department"]:checked');
+            const checkedPosition = document.querySelectorAll('input[name="position"]:checked');
+            
+            if (!name) {
+                alert('이름을 입력해주세요.');
+                return;
+            }
+            
+            if (appState.people.some(p => p.name === name)) {
+                alert('이미 존재하는 이름입니다.');
+                return;
+            }
+            
+            if (checkedCloseness.length === 0) {
+                alert('친밀도를 선택해주세요.');
+                return;
+            }
+            
+            if (checkedDepartment.length === 0) {
+                alert('부서를 선택해주세요.');
+                return;
+            }
+            
+            if (checkedPosition.length === 0) {
+                alert('직급을 선택해주세요.');
+                return;
+            }
+            
+            // 첫 번째로 체크된 값들 사용
+            const closeness = checkedCloseness[0].value;
+            const department = checkedDepartment[0].value;
+            const position = checkedPosition[0].value;
+            
+            appState.people.push({ name, closeness, department, position });
+            resetInputs();
+            render();
+        }
+
+        // --- 인물 삭제 ---
+        function removePerson(idx) {
+            if (idx === 0) return; // '나'는 삭제 불가
+            const removedName = appState.people[idx].name;
+            appState.people.splice(idx, 1);
+            // 관계(links/matrix)에서 해당 인물 관련 데이터 모두 삭제
+            Object.keys(appState.matrix).forEach(key => {
+                if (key.includes(removedName)) delete appState.matrix[key];
+            });
+            render();
+        }
+
+        // --- 매트릭스 렌더 ---
+        function renderMatrix() {
+            const container = document.getElementById('matrix');
+            container.innerHTML = '';
+            const table = document.createElement('table');
+            table.className = 'matrix';
+            // 헤더
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            headerRow.appendChild(document.createElement('th')).textContent = '이름';
+            // '나'를 제외한 사람만 헤더에 표시
+            appState.people.slice(1).forEach(p => {
+                const th = document.createElement('th');
+                const span = document.createElement('span');
+                span.textContent = p.name;
+                th.appendChild(span);
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            // 바디
+            const tbody = document.createElement('tbody');
+            // '나'를 제외한 사람만 행에 표시
+            appState.people.slice(1).forEach((p1, i) => {
+                const row = document.createElement('tr');
+                row.appendChild(document.createElement('th')).textContent = p1.name;
+                appState.people.slice(1).forEach((p2, j) => {
+                    const td = document.createElement('td');
+                    if (i === j) {
+                        td.className = 'disabled';
+                    } else if (i < j) {
+                        td.className = 'checkbox-cell';
+                        const key = `${p1.name}-${p2.name}`;
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.setAttribute('data-pair', key);
+                        checkbox.checked = !!appState.matrix[key];
+                        checkbox.onchange = e => {
+                            appState.matrix[key] = e.target.checked;
+                            renderNetwork();
+                            updateStats();
+                        };
+                        td.appendChild(checkbox);
+                    } else {
+                        td.className = 'disabled';
+                    }
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+            });
+            table.appendChild(tbody);
+            container.appendChild(table);
+        }
+
+        // --- 인물 목록 렌더 ---
+        function renderPeopleList() {
+            const list = document.getElementById('people-list');
+            list.innerHTML = '';
+            // '나'는 목록에서 제외
+            appState.people.filter(person => !person.isMe).forEach((person, idx) => {
+                const li = document.createElement('li');
+                li.className = 'person-item';
+                const info = document.createElement('div');
+                info.className = 'person-info';
+                const nameRow = document.createElement('div');
+                nameRow.className = 'person-name-row';
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'person-name';
+                nameSpan.textContent = person.name;
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = '삭제';
+                // idx+1: people에서 '나'를 제외한 인덱스이므로 +1
+                deleteBtn.addEventListener('click', () => removePerson(idx + 1));
+                nameRow.appendChild(nameSpan);
+                nameRow.appendChild(deleteBtn);
+                info.appendChild(nameRow);
+                const characteristics = document.createElement('div');
+                characteristics.className = 'person-characteristics';
+                // 한글 매핑
+                const deptMap = { same: '같은 부서', different: '다른 부서' };
+                const posMap = { higher: '더 높은 직급', same: '같은 직급', lower: '더 낮은 직급' };
+                const closeness = person.closeness;
+                const department = deptMap[person.department] || person.department;
+                const position = posMap[person.position] || person.position;
+                characteristics.textContent = [closeness, department, position].filter(Boolean).join(' | ');
+                info.appendChild(characteristics);
+                li.appendChild(info);
+                list.appendChild(li);
+            });
+        }
+
+        // --- 노드 색상 결정 함수 ---
+        function getNodeColor(d) {
+            // 색상 팔레트: 진한, 기준, 연한, 매우 연한
+            const baseColor = '#1f77b4'; // 기준 파랑
+            const darker = '#003366';     // 매우 진한 파랑
+            const lighter = '#7ec8e3';    // 연한 파랑
+            const faint = '#e3f2fd';      // 매우 연한 파랑
+            if (d.isMe) return baseColor;
+            switch (appState.view) {
+                case 'position':
+                    if (d.position === 'higher') return darker;
+                    if (d.position === 'same') return baseColor;
+                    if (d.position === 'lower') return lighter;
+                    return faint;
+                case 'department':
+                    if (d.department === 'same') return baseColor;
+                    if (d.department === 'different') return lighter;
+                    return faint;
+                case 'closeness':
+                    if (d.closeness === '매우 가깝다') return darker;
+                    if (d.closeness === '가깝다') return baseColor;
+                    if (d.closeness === '보통이다') return lighter;
+                    return faint;
+                case 'all':
+                default:
+                    return baseColor;
+            }
+        }
+
+        // --- 네트워크 시각화 ---
+        function renderNetwork() {
+            const svg = d3.select('#network');
+            svg.selectAll('*').remove();
+            const width = Math.max(1200, window.innerWidth * 0.9);
+            const height = Math.max(800, appState.people.length * 90);
+            svg.attr('width', width).attr('height', height);
+            const emptyMsg = document.getElementById('network-empty-message');
+            // 노드/링크 데이터 ('나' 제외)
+            const nodes = appState.people.filter(p => !p.isMe).map(p => ({ ...p }));
+            const links = [];
+            Object.entries(appState.matrix).forEach(([key, checked]) => {
+                if (checked) {
+                    const [source, target] = key.split('-');
+                    links.push({ source, target });
+                }
+            });
+            
+            // 연결된 노드와 연결되지 않은 노드 분류
+            const connectedNodes = new Set();
+            links.forEach(link => {
+                connectedNodes.add(link.source);
+                connectedNodes.add(link.target);
+            });
+            
+            // 안내 메시지는 2명 미만일 때만 표시
+            if (appState.people.length < 2) {
+                emptyMsg.style.display = 'block';
+                return;
+            } else {
+                emptyMsg.style.display = 'none';
+            }
+            // forceSimulation - 개선된 설정
+            const simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.name).distance(250).strength(0.7))
+                .force('charge', d3.forceManyBody().strength(-800).distanceMax(500))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collide', d3.forceCollide().radius(80).iterations(5))
+                .force('x', d3.forceX(width / 2).strength(0.1))
+                .force('y', d3.forceY(height / 2).strength(0.1))
+                .alphaDecay(0.01);
+            
+            // 연결되지 않은 노드들을 주변부로 밀어내는 힘
+            simulation.force('isolation', function(alpha) {
+                const radius = Math.min(width, height) / 2.5; // 배치할 원의 반지름
+                nodes.forEach(node => {
+                    if (!connectedNodes.has(node.name)) {
+                        // 현재 위치에서 중심까지의 각도 계산
+                        const angle = Math.atan2(node.y - height/2, node.x - width/2);
+                        // 목표 위치 (원 둘레 상의 점)
+                        const targetX = width/2 + radius * Math.cos(angle);
+                        const targetY = height/2 + radius * Math.sin(angle);
+                        // 목표 위치로 이동하는 힘 적용
+                        node.vx += (targetX - node.x) * alpha * 0.3;
+                        node.vy += (targetY - node.y) * alpha * 0.3;
+                    }
+                });
+            });
+            
+            // 더 많은 틱으로 안정화
+            // 초기 위치 설정: 연결된 노드는 중심부에, 연결되지 않은 노드는 외곽에 배치
+            const innerRadius = Math.min(width, height) / 4;
+            const outerRadius = Math.min(width, height) / 2.5;
+            
+            // 연결된 노드와 연결되지 않은 노드 분리
+            const connectedNodesList = nodes.filter(n => connectedNodes.has(n.name));
+            const isolatedNodesList = nodes.filter(n => !connectedNodes.has(n.name));
+            
+            // 연결된 노드들은 내부 원에 배치
+            connectedNodesList.forEach((d, i) => {
+                const angle = (i / connectedNodesList.length) * 2 * Math.PI;
+                d.x = width/2 + innerRadius * Math.cos(angle);
+                d.y = height/2 + innerRadius * Math.sin(angle);
+            });
+            
+            // 연결되지 않은 노드들은 외부 원에 배치
+            isolatedNodesList.forEach((d, i) => {
+                const angle = (i / isolatedNodesList.length) * 2 * Math.PI;
+                d.x = width/2 + outerRadius * Math.cos(angle);
+                d.y = height/2 + outerRadius * Math.sin(angle);
+            });
+            
+            // 충분한 틱으로 안정화
+            simulation.tick(800);
+            simulation.stop();
+            // 링크 (있을 때만)
+            if (links.length > 0) {
+                const linksGroup = svg.append('g')
+                    .attr('class', 'links');
+
+                linksGroup.selectAll('line')
+                    .data(links)
+                    .join('line')
+                    .attr('x1', d => (typeof d.source === 'object' ? d.source.x : nodes.find(n => n.name === d.source)?.x || 0))
+                    .attr('y1', d => (typeof d.source === 'object' ? d.source.y : nodes.find(n => n.name === d.source)?.y || 0))
+                    .attr('x2', d => (typeof d.target === 'object' ? d.target.x : nodes.find(n => n.name === d.target)?.x || 0))
+                    .attr('y2', d => (typeof d.target === 'object' ? d.target.y : nodes.find(n => n.name === d.target)?.y || 0))
+                    .attr('stroke', '#222')
+                    .attr('stroke-width', 2)
+                    .attr('opacity', 0.5)
+                    .style('cursor', 'pointer')
+                    .on('mouseover', function(event, d) {
+                        // 현재 선 강조
+                        d3.select(this)
+                            .attr('stroke-width', 4)
+                            .attr('opacity', 1);
+                        // 다른 선들은 더 투명하게
+                        linksGroup.selectAll('line')
+                            .filter(l => l !== d)
+                            .attr('opacity', 0.2);
+                    })
+                    .on('mouseout', function() {
+                        // 모든 선 원래대로
+                        linksGroup.selectAll('line')
+                            .attr('stroke-width', 2)
+                            .attr('opacity', 0.5);
+                    });
+            }
+            // 노드 (항상)
+            const node = svg.append('g')
+                .selectAll('g')
+                .data(nodes)
+                .join('g')
+                .attr('transform', d => `translate(${d.x},${d.y})`);
+            node.append('circle')
+                .attr('r', 30)
+                .attr('fill', getNodeColor);
+            // 텍스트 줄바꿈 함수
+            function wrapText(text, width) {
+                text.each(function() {
+                    const text = d3.select(this);
+                    const words = text.text().split(/(?=[가-힣])|(?=[A-Za-z])/);
+                    let line = [];
+                    let lineNumber = 0;
+                    const lineHeight = 1.2;
+                    const y = text.attr("y");
+                    const dy = parseFloat(text.attr("dy"));
+                    let tspan = text.text(null)
+                        .append("tspan")
+                        .attr("x", 0)
+                        .attr("y", y)
+                        .attr("dy", dy + "em");
+
+                    for (let i = 0; i < words.length; i++) {
+                        const word = words[i];
+                        line.push(word);
+                        tspan.text(line.join(""));
+                        if (tspan.node().getComputedTextLength() > width && line.length > 1) {
+                            line.pop();
+                            tspan.text(line.join(""));
+                            line = [word];
+                            tspan = text.append("tspan")
+                                .attr("x", 0)
+                                .attr("y", y)
+                                .attr("dy", ++lineNumber * lineHeight + dy + "em")
+                                .text(word);
+                        }
+                    }
+                });
+            }
+
+            node.append('text')
+                .text(d => d.name)
+                .attr('text-anchor', 'middle')
+                .attr('dy', '.35em')
+                .attr('fill', 'white')
+                .attr('font-size', '12px')
+                .call(wrapText, 40);
+        }
+
+        // --- 범례 및 탭 렌더 ---
+        function renderLegendAndTabs() {
+            document.querySelectorAll('.network-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.view === appState.view);
+                tab.onclick = () => {
+                    appState.view = tab.dataset.view;
+                    renderNetwork();
+                    renderLegendAndTabs();
+                };
+            });
+            // 범례 표시
+            const legend = document.getElementById('legend');
+            legend.innerHTML = '';
+            const baseColor = '#1f77b4';
+            const darker = '#003366';
+            const lighter = '#7ec8e3';
+            const faint = '#e3f2fd';
+            if (appState.view === 'position') {
+                legend.innerHTML = `
+                    <div class="legend-title">직급</div>
+                    <div class="legend-item"><div class="legend-color" style="background:${darker};"></div>더 높은 직급</div>
+                    <div class="legend-item"><div class="legend-color" style="background:${baseColor};"></div>같은 직급</div>
+                    <div class="legend-item"><div class="legend-color" style="background:${lighter};"></div>더 낮은 직급</div>
+                `;
+            } else if (appState.view === 'department') {
+                legend.innerHTML = `
+                    <div class="legend-title">부서</div>
+                    <div class="legend-item"><div class="legend-color" style="background:${baseColor};"></div>같은 부서</div>
+                    <div class="legend-item"><div class="legend-color" style="background:${lighter};"></div>다른 부서</div>
+                `;
+            } else if (appState.view === 'closeness') {
+                legend.innerHTML = `
+                    <div class="legend-title">친밀도</div>
+                    <div class="legend-item"><div class="legend-color" style="background:${darker};"></div>매우 가깝다</div>
+                    <div class="legend-item"><div class="legend-color" style="background:${baseColor};"></div>가깝다</div>
+                    <div class="legend-item"><div class="legend-color" style="background:${lighter};"></div>보통이다</div>
+                `;
+            }
+        }
+
+        // --- 통계 계산 함수들 ---
+        function calculateBlauIndex(values) {
+            if (values.length === 0) return 0;
+            
+            const counts = {};
+            values.forEach(value => {
+                counts[value] = (counts[value] || 0) + 1;
+            });
+            
+            const proportions = Object.values(counts).map(count => count / values.length);
+            const sumSquared = proportions.reduce((sum, p) => sum + p * p, 0);
+            
+            return 1 - sumSquared;
+        }
+        
+        function calculateDensity() {
+            const people = appState.people.filter(p => !p.isMe);
+            if (people.length < 2) return 0;
+            
+            const maxPossibleLinks = (people.length * (people.length - 1)) / 2;
+            const actualLinks = Object.values(appState.matrix).filter(checked => checked).length;
+            
+            return (actualLinks / maxPossibleLinks * 100).toFixed(1);
+        }
+        
+        function updateStats() {
+            const people = appState.people.filter(p => !p.isMe);
+            const totalCount = people.length;
+            const veryCloseCount = people.filter(p => p.closeness === '매우 가깝다').length;
+            const differentDeptCount = people.filter(p => p.department === 'different').length;
+            const higherPositionCount = people.filter(p => p.position === 'higher').length;
+            const density = calculateDensity();
+            // Blau index 계산
+            const closenessValues = people.map(p => p.closeness).filter(Boolean);
+            const departmentValues = people.map(p => p.department).filter(Boolean);
+            const positionValues = people.map(p => p.position).filter(Boolean);
+            const closenessBlau = calculateBlauIndex(closenessValues);
+            const departmentBlau = calculateBlauIndex(departmentValues);
+            const positionBlau = calculateBlauIndex(positionValues);
+            // 통계 업데이트
+            document.getElementById('total-count').textContent = totalCount;
+            document.getElementById('very-close-count').textContent = veryCloseCount;
+            document.getElementById('different-dept-count').textContent = differentDeptCount;
+            document.getElementById('higher-position-count').textContent = higherPositionCount;
+            document.getElementById('network-density').textContent = density;
+            document.getElementById('closeness-blau').textContent = closenessBlau.toFixed(3);
+            document.getElementById('department-blau').textContent = departmentBlau.toFixed(3);
+            document.getElementById('position-blau').textContent = positionBlau.toFixed(3);
+        }
+        
+        // --- 렌더링 함수들 ---
+        function render() {
+            renderPeopleList();
+            renderMatrix();
+            renderNetwork();
+            renderLegendAndTabs();
+            updateStats();
+        }
+
+        function renderPartial(type) {
+            switch(type) {
+                case 'person':
+                    renderPeopleList();
+                    renderMatrix();
+                    renderNetwork();
+                    updateStats();
+                    break;
+                case 'network':
+                    renderNetwork();
+                    renderLegendAndTabs();
+                    break;
+                case 'stats':
+                    updateStats();
+                    break;
+            }
+        }
+
+        // --- 설명 데이터 ---
+        const explainData = [
+            {
+                key: 'total-count',
+                label: '네트워크 크기',
+                desc: "내가 중요하게 생각하는 사람이 몇 명인지 나타냅니다.\n관계 맺고 있는 사람이 많을수록 다양한 정보와 자원을 얻을 기회가 많아집니다."
+            },
+            {
+                key: 'very-close-count',
+                label: '친밀한 관계 수',
+                desc: "그중에서도 '매우 가까운 관계'에 해당하는 사람이 몇 명인지 나타냅니다.\n가까운 관계는 신뢰와 정서적 지지에 유리하며, 협업할 때 강한 기반이 됩니다."
+            },
+            {
+                key: 'different-dept-count',
+                label: '다른 부서 사람 수',
+                desc: "관계 맺은 사람 중 나와 다른 부서에 속한 사람이 얼마나 있는지를 보여줍니다.\n다른 부서 사람과의 연결은 새로운 시각이나 정보에 접근할 수 있는 기회를 제공합니다."
+            },
+            {
+                key: 'higher-position-count',
+                label: '더 높은 직급의 사람 수',
+                desc: "연결된 사람 중 나보다 직급이 높은 사람이 몇 명인지 나타냅니다.\n상위직급과의 연결은 자원, 기회, 영향력 확보에 긍정적인 역할을 할 수 있습니다."
+            },
+            {
+                key: 'network-density',
+                label: '네트워크 밀집도',
+                desc: "내가 연결된 사람들끼리 서로 알고 있는 정도를 나타냅니다.\n밀집도가 높을수록 신뢰와 응집력은 크지만, 정보가 중복될 가능성도 있습니다.\n반대로 밀집도가 낮으면 다양한 정보는 많지만 협력 기반은 약할 수 있습니다."
+            },
+            {
+                key: 'closeness-blau',
+                label: '친밀도 다양성',
+                desc: "매우 가까운 관계부터 보통 수준의 관계까지 다양한 친밀도 수준의 사람들과 연결되어 있는지를 보여줍니다.\n관계가 한 쪽으로만 치우쳐 있을 때보다, 다양한 친밀도 수준이 섞여 있을 때 정보 접근과 협력 기회가 균형 잡힐 수 있습니다."
+            },
+            {
+                key: 'department-blau',
+                label: '부서 다양성',
+                desc: "여러 부서에 걸쳐 있는 사람들과 관계를 맺고 있는지를 나타냅니다.\n부서 간 다양성이 높을수록 다양한 정보원과 시각에 접근할 수 있습니다."
+            },
+            {
+                key: 'position-blau',
+                label: '직급 다양성',
+                desc: "같은 직급뿐 아니라, 더 높거나 낮은 직급의 사람들과 연결되어 있는지를 보여줍니다.\n직급의 폭이 넓을수록 위에서 자원을 얻고, 아래와 실행력을 높이며, 수평적 협업도 가능해집니다."
+            }
+        ];
+        // --- 설명 탭 렌더 ---
+        function renderExplainTabs() {
+            const tabs = document.getElementById('explain-tabs');
+            tabs.innerHTML = '';
+            explainData.forEach((item, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'explain-tab' + (idx === 0 ? ' active' : '');
+                btn.textContent = item.label;
+                btn.onclick = () => selectExplainTab(idx);
+                tabs.appendChild(btn);
+            });
+        }
+        function selectExplainTab(idx) {
+            document.querySelectorAll('.explain-tab').forEach((tab, i) => {
+                tab.classList.toggle('active', i === idx);
+            });
+            const content = document.getElementById('explain-content');
+            // 설명만 표시, 결과값(숫자)은 표시하지 않음
+            content.innerHTML = explainData[idx].desc.replace(/\n/g, '<br>');
+        }
+        // --- 초기화 ---
+        document.getElementById('name-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                setTimeout(() => addPerson(), 0);
+            }
+        });
+        document.querySelector('.add-button').onclick = () => {
+            setTimeout(() => addPerson(), 0);
+        };
+        render();
+        renderExplainTabs();
+        selectExplainTab(0);
+    </script>
+</body>
+</html> 
